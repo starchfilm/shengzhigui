@@ -1,0 +1,19 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run audio processing tests
+        run: swift test
+      - name: Build macOS app
+        run: zsh Scripts/build-app.sh
