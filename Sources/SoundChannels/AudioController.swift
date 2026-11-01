@@ -16,6 +16,35 @@ final class AudioController {
     private var routes: [String: AudioRoute] = [:]
     private var generations: [String: UUID] = [:]
     private let logger = Logger(subsystem: "com.starchfilm.SoundChannels", category: "Audio")
+    private var protectionTimer: DispatchSourceTimer?
+    private var protectionStatuses: [AudioObjectID: OSStatus] = [:]
+
+    private func updateProtection() {
+        guard !routes.isEmpty else {
+            protectionTimer?.cancel(); protectionTimer = nil
+            protectionStatuses.removeAll()
+            return
+        }
+        applyProtection()
+        if protectionTimer == nil {
+            let timer = DispatchSource.makeTimerSource(queue: queue)
+            timer.schedule(deadline: .now() + 0.3, repeating: 0.3, leeway: .milliseconds(40))
+            timer.setEventHandler { [weak self] in self?.applyProtection() }
+            protectionTimer = timer
+            timer.resume()
+        }
+    }
+
+    private func applyProtection() {
+        let devices = routes.values.reduce(into: Set<AudioObjectID>()) { $0.formUnion($1.protectionDevices) }
+        for device in devices where device != kAudioObjectUnknown {
+            let status = DuckingProtection.restoreUnity(on: device)
+            if protectionStatuses[device] != status {
+                logger.notice("Call volume protection device \(device): status \(status)")
+                protectionStatuses[device] = status
+            }
+        }
+    }
 
     func configure(app: AudioApplication, device: OutputDevice, gain: Float, generation: UUID,
                    completion: @escaping (Result<RouteSnapshot, Error>) -> Void) {
@@ -35,6 +64,7 @@ final class AudioController {
                     route = try AudioRoute(app: app, device: device, gain: gain)
                     self.routes[app.id] = route
                 }
+                self.updateProtection()
                 return self.snapshot(route)
             }
             DispatchQueue.main.async { completion(result) }
@@ -48,12 +78,14 @@ final class AudioController {
             if let generation, self.generations[id] != generation { return }
             self.generations.removeValue(forKey: id)
             self.routes.removeValue(forKey: id)?.stop()
+            self.updateProtection()
         }
     }
     func stopAll(completion: (() -> Void)? = nil) {
         queue.async {
             for route in self.routes.values { route.stop() }
             self.routes.removeAll(); self.generations.removeAll()
+            self.updateProtection()
             if let completion { DispatchQueue.main.async { completion() } }
         }
     }

@@ -13,6 +13,7 @@ final class AudioRoute {
     private(set) var deviceUID: String
     private var deviceID: AudioObjectID
     var isRunning: Bool { engine?.isRunning == true }
+    var protectionDevices: Set<AudioObjectID> { [deviceID, aggregate] }
 
     var peak: Float { bridge.map(SCBridgePeak) ?? 0 }
     var received: UInt64 { bridge.map(SCBridgeReceived) ?? 0 }

@@ -80,6 +80,8 @@ struct MixerView: View {
                 }.contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(appsExpanded ? "收起应用音量" : "展开应用音量")
             if appsExpanded {
+            Label("通话音量保护随应用控制开启", systemImage: "phone.badge.waveform")
+                .font(.caption).foregroundStyle(.secondary)
             if model.applications.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "music.note").font(.title2)
@@ -126,12 +128,12 @@ struct AppRow: View {
                 else { Image(systemName: "app.fill").font(.title2).frame(width: 28) }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(app.name).font(.subheadline.weight(.medium)).lineLimit(1)
-                    Text(model.starting.contains(app.id) ? (isEnabled ? "正在切换输出…" : "正在开启音频控制…") : (isEnabled ? ((model.peaks[app.id] ?? 0) > 0.0001 ? "正在处理音频" : "通道已开启 · 等待声音") : (app.playing ? "正在播放 · 原始输出" : "原始输出")))
+                    Text(model.starting.contains(app.id) ? (isEnabled ? "正在切换输出…" : "正在开启音频控制…") : (isEnabled ? "音频控制已开启" : "未开启音频控制"))
                         .font(.caption2).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
                 Toggle("控制\(app.name)", isOn: Binding(get: { isEnabled || model.starting.contains(app.id) }, set: { model.toggle(app, $0) }))
-                    .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+                    .labelsHidden().toggleStyle(ClearSwitchStyle())
             }
             if isEnabled {
                 HStack {
@@ -150,5 +152,28 @@ struct AppRow: View {
                     .disabled(model.starting.contains(app.id))
             }
         }.padding(12).background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct ClearSwitchStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button { configuration.isOn.toggle() } label: {
+            HStack(spacing: 6) {
+                Text(configuration.isOn ? "已开启" : "已关闭")
+                    .font(.caption).foregroundStyle(configuration.isOn ? Color.blue : Color.secondary)
+                Capsule()
+                    .fill(configuration.isOn ? Color.blue : Color.secondary.opacity(0.28))
+                    .frame(width: 34, height: 20)
+                    .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                        Circle().fill(.white).frame(width: 16, height: 16).padding(2)
+                    }
+            }.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityRepresentation {
+            Toggle(isOn: Binding(get: { configuration.isOn }, set: { configuration.isOn = $0 })) {
+                configuration.label
+            }.toggleStyle(.switch)
+        }
     }
 }

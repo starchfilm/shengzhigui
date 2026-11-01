@@ -16,7 +16,6 @@ struct AppSetting: Codable {
     @Published var enabled: Set<String> = []
     @Published var starting: Set<String> = []
     @Published var error: String?
-    @Published var peaks: [String: Float] = [:]
     @Published var masterVolume: Double = 1
     @Published var masterVolumeAvailable = false
     var adjustingMasterVolume = false
@@ -37,7 +36,7 @@ struct AppSetting: Codable {
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
-        meterTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+        meterTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 guard !self.sampling else { return }
@@ -46,8 +45,6 @@ struct AppSetting: Codable {
                     guard let self else { return }
                     self.sampling = false
                     self.routeStates = states
-                    let peaks = states.mapValues { $0.peak > 0.0001 ? Float(1) : Float(0) }
-                    if self.peaks != peaks { self.peaks = peaks }
                 }
             }
         }
@@ -181,12 +178,12 @@ struct AppSetting: Codable {
     }
     func disable(_ id: String) {
         generations.removeValue(forKey: id); starting.remove(id)
-        controller.stop(id); routeStates.removeValue(forKey: id); enabled.remove(id); peaks.removeValue(forKey: id)
+        controller.stop(id); routeStates.removeValue(forKey: id); enabled.remove(id)
     }
     func stopAll() {
         generations.removeAll(); starting.removeAll()
         controller.stopAll()
-        routeStates.removeAll(); enabled.removeAll(); peaks.removeAll()
+        routeStates.removeAll(); enabled.removeAll()
     }
     func quit() {
         pendingSave?.cancel(); persistSettings()
