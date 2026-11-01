@@ -25,7 +25,7 @@
 
 当前提供源码，尚未提供经 Developer ID 签名和公证的正式安装包。
 
-需要 macOS 14.2 或更新版本，以及 Swift 6 工具链（例如 Xcode 16 或更新版本）。取得仓库访问权限后运行：
+需要 macOS 14.2 或更新版本，以及 Swift 6 工具链（例如 Xcode 16 或更新版本）。运行：
 
 ```sh
 git clone https://github.com/starchfilm/shengzhigui.git
@@ -82,3 +82,9 @@ dist/声之轨.app/Contents/MacOS/SoundChannels --diagnose
 - [开发者架构说明](docs/ARCHITECTURE.md)
 - [音频验证记录](docs/AUDIO_VALIDATION.md)
 - [提交问题](https://github.com/starchfilm/shengzhigui/issues)
+
+## 开源许可
+
+本项目采用 [MIT License](LICENSE) 开源，允许使用、修改、分发和商业使用；分发时请保留版权与许可证声明。软件按现状提供，不附带担保。
+
+欢迎提交 Issue 和 Pull Request。报告音频兼容性问题时，请尽量附上不涉及私人通话内容的复现步骤。
