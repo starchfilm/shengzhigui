@@ -43,8 +43,6 @@ struct MixerView: View {
                     Text("让每个声音，各就各位").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button { model.refresh() } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.plain).help("刷新应用和设备").accessibilityLabel("刷新应用和设备")
             }
             VStack(alignment: .leading, spacing: 8) {
                 Label("系统输出", systemImage: "speaker.wave.2").font(.subheadline.weight(.medium))
@@ -55,8 +53,9 @@ struct MixerView: View {
                     HStack(spacing: 10) {
                         Image(systemName: model.masterVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
                             .foregroundStyle(.secondary)
-                        Slider(value: Binding(get: { model.masterVolume }, set: { model.setMasterVolume($0) }), in: 0...1,
+                        VolumeSlider(value: Binding(get: { model.masterVolume }, set: { model.setMasterVolume($0) }),
                                onEditingChanged: { model.adjustingMasterVolume = $0 })
+                            .frame(height: 20)
                             .accessibilityLabel("系统总音量")
                         Text("\(Int((model.masterVolume * 100).rounded()))%")
                             .font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 36, alignment: .trailing)
@@ -140,7 +139,8 @@ struct AppRow: View {
                     Button { model.setMuted(app.id) } label: {
                         Image(systemName: setting.muted ? "speaker.slash.fill" : "speaker.wave.2.fill").frame(width: 20)
                     }.buttonStyle(.plain).accessibilityLabel(setting.muted ? "取消静音" : "静音")
-                    Slider(value: Binding(get: { setting.volume }, set: { model.setVolume(app.id, $0) }), in: 0...1)
+                    VolumeSlider(value: Binding(get: { setting.volume }, set: { model.setVolume(app.id, $0) }))
+                        .frame(height: 20)
                         .accessibilityLabel("\(app.name)音量")
                     Text("\(Int(setting.volume * 100))%")
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 36, alignment: .trailing)
@@ -159,8 +159,6 @@ struct ClearSwitchStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button { configuration.isOn.toggle() } label: {
             HStack(spacing: 6) {
-                Text(configuration.isOn ? "已开启" : "已关闭")
-                    .font(.caption).foregroundStyle(configuration.isOn ? Color.blue : Color.secondary)
                 Capsule()
                     .fill(configuration.isOn ? Color.blue : Color.secondary.opacity(0.28))
                     .frame(width: 34, height: 20)

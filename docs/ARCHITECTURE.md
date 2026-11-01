@@ -6,6 +6,7 @@
 Sources/
   SoundChannels/
     SoundChannelsApp.swift  菜单栏、总音量和应用控制界面
+    VolumeSlider.swift      保持轨道颜色的原生音量滑条
     AudioModel.swift        界面状态、设置、设备刷新与操作协调
     AudioController.swift   在串行后台队列上管理音频通道
     AudioRoute.swift        单个应用的采集、处理和播放生命周期
@@ -53,7 +54,7 @@ Process Tap 与重新播放本身不能绕开设备端的通话压低。开发�
 
 `duck` 是未公开的属性。调用前检查属性存在、可写且长度为 16 字节；不符合时直接返回错误，不修改设备。写入发生在实时回调之外，维持周期为 300 毫秒；没有受控通道时停止维持。它不修改扬声器总音量、不提高样本增益，不尝试改变微信内部的语音处理设置。未开启控制的其他应用仍可能被系统压低。
 
-开关的颜色和“已开启／已关闭”文字由显式 SwiftUI 样式绘制，避免非活动窗口的系统开关灰化导致误读；保留原生 Toggle 的辅助功能语义。
+开关的轨道和滑块位置由显式 SwiftUI 样式绘制，不显示重复的开关文字，避免非活动窗口的系统开关灰化导致误读；保留原生 Toggle 的辅助功能语义。音量滑条使用 NSSlider 保留拖动、键盘和辅助功能，仅通过自定义 NSSliderCell 绘制保持蓝色的进度轨道。
 
 参考调查：[Apple 语音处理与其他音频压低](https://developer.apple.com/videos/play/wwdc2023/10235/)、[Unduck Pro 的设备属性调查](https://github.com/MrRockySL/Unduck-Pro)。本仓库的兼容层独立实现，并以本机 Core Audio 属性和日志验证。
 
