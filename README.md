@@ -21,9 +21,19 @@
 
 声之轨使用自己的菜单栏面板，不会在苹果自带的“声音”面板中插入滑块，也不安装第三方虚拟音频驱动。
 
-## 构建与运行
+## 下载与安装
 
-当前提供源码，尚未提供经 Developer ID 签名和公证的正式安装包。
+前往 **[GitHub Releases 下载 DMG](https://github.com/starchfilm/shengzhigui/releases)**。打开磁盘映像，将“声之轨.app”拖到 **Applications**，然后从“应用程序”启动。
+
+安装包包含 Apple Silicon 和 Intel 两种架构，要求 macOS 14.2 或更新版本。当前是**临时签名、未经 Apple 公证的公开测试版**，不是正式签名发行版；macOS 可能阻止首次打开，请参考 [苹果的应用打开说明](https://support.apple.com/102445)。Intel 版本尚未实机验证。
+
+Release 同时提供 SHA-256 校验文件。下载 DMG 与对应 `.sha256` 文件后，在下载目录运行：
+
+```sh
+shasum -a 256 -c ShengZhiGui-0.1.0-universal.dmg.sha256
+```
+
+## 构建与运行
 
 需要 macOS 14.2 或更新版本，以及 Swift 6 工具链（例如 Xcode 16 或更新版本）。运行：
 
@@ -35,6 +45,14 @@ open dist/声之轨.app
 ```
 
 构建脚本会生成本机临时签名的应用，位置为 `dist/声之轨.app`。也可以用 Xcode 打开 `Package.swift` 编辑源码；实际音频测试请运行打包后的 `.app`。
+
+生成与 Release 相同结构的通用 DMG：
+
+```sh
+zsh Scripts/package-dmg.sh
+```
+
+产物在 `dist/`，包含 DMG 和 SHA-256 校验文件。发布流程监听 `v*` 标签，检查版本、运行测试并构建通用安装包后，发布为 GitHub 预发布版本。
 
 ## 三步开始使用
 

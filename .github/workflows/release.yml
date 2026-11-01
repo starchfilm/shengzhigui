@@ -1,0 +1,39 @@
+name: Publish DMG release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check release version
+        shell: zsh {0}
+        run: |
+          set -euo pipefail
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          [[ "$GITHUB_REF_NAME" == "v$version" ]]
+          [[ -f "docs/releases/$GITHUB_REF_NAME.md" ]]
+      - name: Run audio processing tests
+        run: swift test
+      - name: Build and verify universal DMG
+        run: zsh Scripts/package-dmg.sh
+      - name: Publish prerelease and installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset="dist/ShengZhiGui-${GITHUB_REF_NAME#v}-universal.dmg"
+          gh release create "$GITHUB_REF_NAME" "$asset" "$asset.sha256" \
+            --verify-tag --prerelease \
+            --title "声之轨 $GITHUB_REF_NAME · 公开测试版" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"
