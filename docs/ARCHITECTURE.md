@@ -13,7 +13,7 @@ Sources/
     DuckingProtection.swift 通话压低系数的兼容处理
     Hardware.swift          Core Audio 设备、进程与系统音量接口
   AudioBridge/
-    AudioBridge.c          实时缓冲、音量渐变和基础重采样
+    AudioBridge.c          实时缓冲、音量渐变和带限重采样
     include/AudioBridge.h  Swift 与 C 的接口
 Tests/AudioBridgeTests/     音频处理单元测试
 Resources/Info.plist        应用标识、显示名称和授权文案
@@ -30,6 +30,8 @@ Scripts/build-app.sh        构建、打包和本机临时签名
 Tap 使用 `mutedWhenTapped`：读取期间替代应用原输出，停止读取后恢复原路径。聚合设备不包含硬件麦克风，避免主动打开耳机麦克风。
 
 切换输出时保留 Tap、聚合设备、缓冲和源音频格式，仅重启播放引擎并设置新设备。混音器将源格式转换为目标硬件格式。切换失败时尝试恢复先前设备；应用进程集合变化时重建整个通道。
+
+C 音频桥使用 64 抽头、1024 相位的 Blackman 窗 sinc 插值；在建立通道时预计算系数，实时回调不分配内存。相邻相位系数插值以降低相位量化误差；降采样时收窄截止频率。同采样率且无分数相位时走直接复制路径，保留相同的固定滤波延迟。读指针保留插值需要的历史样本，避免生产者提前覆盖。缓冲补偿阈值按实际回调长度缩放，不再把正常的 480 帧回调误判为饥饿。
 
 ## 线程与状态
 
