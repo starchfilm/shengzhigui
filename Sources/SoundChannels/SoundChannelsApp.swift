@@ -16,9 +16,6 @@ import CoreAudio
         }
     }
     var body: some Scene {
-        Window("声之轨", id: "mixer") {
-            MixerView(model: model)
-        }.windowResizability(.contentSize)
         MenuBarExtra("声之轨", systemImage: "speaker.wave.2.fill") {
             MixerView(model: model)
         }.menuBarExtraStyle(.window)
@@ -26,6 +23,9 @@ import CoreAudio
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+    }
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
     }

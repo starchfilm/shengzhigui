@@ -6,8 +6,8 @@
 <key>CFBundleName</key><string>声之轨</string>
 <key>CFBundleDisplayName</key><string>声之轨</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>0.1.1</string>
+<key>CFBundleVersion</key><string>2</string>
 <key>LSMinimumSystemVersion</key><string>14.2</string>
 <key>LSUIElement</key><true/>
 <key>NSAudioCaptureUsageDescription</key><string>声之轨需要处理指定应用的输出音频，以调节音量并将声音发送到你选择的扬声器或耳机。音频仅在本机处理，不会保存或上传。</string>
