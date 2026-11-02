@@ -30,7 +30,7 @@
 Release 同时提供 SHA-256 校验文件。下载 DMG 与对应 `.sha256` 文件后，在下载目录运行：
 
 ```sh
-shasum -a 256 -c ShengZhiGui-0.1.1-universal.dmg.sha256
+shasum -a 256 -c ShengZhiGui-0.1.2-universal.dmg.sha256
 ```
 
 ## 构建与运行
