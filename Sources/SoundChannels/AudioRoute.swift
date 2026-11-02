@@ -1,8 +1,11 @@
 import AVFoundation
 import CoreAudio
 import AudioBridge
+import os
 
 final class AudioRoute {
+    private var tapDescription: CATapDescription?
+    private let logger = Logger(subsystem: "com.starchfilm.SoundChannels", category: "AudioRoute")
     private var tap: AudioObjectID = 0
     private var aggregate: AudioObjectID = 0
     private var ioProc: AudioDeviceIOProcID?
@@ -26,6 +29,7 @@ final class AudioRoute {
             description.name = "声之轨 · \(app.name)"
             description.isPrivate = true
             description.muteBehavior = .mutedWhenTapped
+            tapDescription = description
             try check(AudioHardwareCreateProcessTap(description, &tap), "建立应用音频通道")
             let format = try Hardware.value(tap, kAudioTapPropertyFormat, initial: AudioStreamBasicDescription())
             guard format.mFormatID == kAudioFormatLinearPCM,
@@ -97,6 +101,15 @@ final class AudioRoute {
         }
     }
     func stop() {
+        // Restore native playback explicitly before dismantling the capture path.
+        // Stopping the relay alone must never leave the source process muted.
+        if tap != 0, let description = tapDescription {
+            description.muteBehavior = .unmuted
+            var value = Unmanaged.passUnretained(description).toOpaque()
+            var property = Hardware.address(kAudioTapPropertyDescription)
+            let status = AudioObjectSetPropertyData(tap, &property, 0, nil, UInt32(MemoryLayout.size(ofValue: value)), &value)
+            if status != noErr { logger.error("Restore native playback failed: \(status)") }
+        }
         if let ioProc {
             AudioDeviceStop(aggregate, ioProc)
             AudioDeviceDestroyIOProcID(aggregate, ioProc)
@@ -107,6 +120,7 @@ final class AudioRoute {
         source = nil; engine = nil
         if aggregate != 0 { AudioHardwareDestroyAggregateDevice(aggregate); aggregate = 0 }
         if tap != 0 { AudioHardwareDestroyProcessTap(tap); tap = 0 }
+        tapDescription = nil
         if let bridge { SCBridgeDestroy(bridge); self.bridge = nil }
     }
     deinit { stop() }

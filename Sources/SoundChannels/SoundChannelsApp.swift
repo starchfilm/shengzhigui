@@ -79,6 +79,8 @@ struct MixerView: View {
                 }.contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityLabel(appsExpanded ? "收起应用音量" : "展开应用音量")
             if appsExpanded {
+            Text("默认跟随上方系统输出；开启后可单独调整应用。")
+                .font(.caption).foregroundStyle(.secondary)
             Label("通话音量保护随应用控制开启", systemImage: "phone.badge.waveform")
                 .font(.caption).foregroundStyle(.secondary)
             if model.applications.isEmpty {
@@ -107,7 +109,7 @@ struct MixerView: View {
             }
             Divider()
             HStack {
-                Button("恢复所有应用") { model.stopAll() }.disabled(model.enabled.isEmpty && model.starting.isEmpty)
+                Button("恢复所有应用") { model.restoreAll() }.disabled(!model.canRestoreAll)
                 Spacer()
                 Button("退出") { model.quit() }
             }.font(.caption)
@@ -127,7 +129,7 @@ struct AppRow: View {
                 else { Image(systemName: "app.fill").font(.title2).frame(width: 28) }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(app.name).font(.subheadline.weight(.medium)).lineLimit(1)
-                    Text(model.starting.contains(app.id) ? (isEnabled ? "正在切换输出…" : "正在开启音频控制…") : (isEnabled ? "音频控制已开启" : "未开启音频控制"))
+                    Text(model.starting.contains(app.id) ? (isEnabled ? "正在切换输出…" : "正在开启音频控制…") : (isEnabled ? "音频控制已开启" : "跟随系统输出"))
                         .font(.caption2).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)

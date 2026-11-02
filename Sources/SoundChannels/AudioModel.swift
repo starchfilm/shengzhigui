@@ -180,7 +180,18 @@ struct AppSetting: Codable {
         generations.removeValue(forKey: id); starting.remove(id)
         controller.stop(id); routeStates.removeValue(forKey: id); enabled.remove(id)
     }
-    func stopAll() {
+    var canRestoreAll: Bool {
+        !enabled.isEmpty || !starting.isEmpty || settings.values.contains {
+            $0.volume != 1 || $0.muted || !$0.outputUID.isEmpty
+        }
+    }
+    func restoreAll() {
+        settings.removeAll()
+        pendingSave?.cancel()
+        persistSettings()
+        stopAll()
+    }
+    private func stopAll() {
         generations.removeAll(); starting.removeAll()
         controller.stopAll()
         routeStates.removeAll(); enabled.removeAll()

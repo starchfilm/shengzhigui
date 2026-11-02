@@ -90,6 +90,11 @@ enum Hardware {
             guard let pid = try? value(object, kAudioProcessPropertyPID, initial: pid_t(0)), pid != getpid() else { continue }
             let bundleID = string(object, kAudioProcessPropertyBundleID) ?? ""
             let processApp = NSRunningApplication(processIdentifier: pid)
+            // System alert sounds are transient audio activity, not a user application.
+            guard bundleID != "com.apple.audio.SystemSoundServer",
+                  bundleID != "com.apple.audio.systemsoundserverd",
+                  processApp?.executableURL?.lastPathComponent != "systemsoundserverd",
+                  processApp?.localizedName != "systemsoundserverd" else { continue }
             let parent = running.filter { app in
                 guard let id = app.bundleIdentifier, !id.isEmpty else { return false }
                 return bundleID == id || bundleID.hasPrefix(id + ".")
