@@ -21,6 +21,7 @@ else
     exit 1
 fi
 mkdir -p "$APP/Contents/Resources"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp LICENSE "$APP/Contents/Resources/LICENSE"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 codesign --force --sign - --identifier com.starchfilm.SoundChannels "$APP"
