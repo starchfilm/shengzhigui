@@ -1,6 +1,6 @@
 # 声之轨应用图标
 
-深蓝圆角方形底座，两条蓝白并行波形代表声音沿轨道流动；使用简化的轮廓，适应 Finder 与安装包中的小尺寸显示。菜单栏继续使用系统单色扬声器符号。
+暖白底座与纯蓝几何标记，用并行路径的转折表达声波和音频路由。采用扁平轮廓和留白，适应小尺寸显示；菜单栏继续使用系统单色扬声器符号。
 
 - 原图：`AppIcon.png`，保留透明外边缘。
 - macOS 图标：`AppIcon.icns`，包含 16–1024 像素版本。
@@ -9,4 +9,5 @@
 
 ## 原始生成提示词
 
-Use case: logo-brand. Asset: one production-ready macOS application icon for 声之轨, a menu bar audio mixer. Create a single square 1024x1024 icon, isolated on genuine transparent alpha outside the icon tile. A deep midnight-blue macOS rounded-square tile, inset evenly with about 9% transparent padding. Center one bold, simple sculptural sound-wave emblem: two closely parallel luminous blue and icy-white paths flowing together into a clean S-shaped waveform, suggesting sound moving along tracks. Strong silhouette, balanced negative space, legible at 32px. Restrained satin depth and subtle glass highlights, precise smooth edges, polished native macOS utility aesthetic. Blue palette consistent with system volume controls. No text, letters, numbers, music notes, headphones, speaker pictogram, border, surrounding scene, presentation sheet, or mockup. No heavy bloom, no tiny details, no outer cast shadow. Deliver the icon alone.
+Use case: logo-brand. Create a single contemporary macOS app icon for 声之轨, a small audio routing and volume utility. Visual direction: exceptionally restrained, graphic, geometric, flat editorial identity. Square canvas with genuine transparent alpha outside one macOS rounded-square tile, about 9% even outer padding. The tile is a single solid warm off-white, no gradient. Center a bold electric-blue abstract emblem consisting of two parallel continuous paths that bend into one compact, balanced soundwave rhythm, evoking audio tracks. The emblem is solid flat blue, rounded path ends, equal stroke widths, confident generous negative space, compact silhouette completely contained in the tile with generous inner padding. Distinctive, quiet, fresh and precisely constructed; easily recognized at 24px. Straight-on orthographic image, no perspective. Absolutely no glass, gloss, 3D, bevel, chrome, metallic surface, reflection, shading, drop shadow, glow, gradients, decorative texture, speaker, headphones, music note, letters, words, typography, captions, mockup, or presentation sheet. Produce only one finished icon.
+
