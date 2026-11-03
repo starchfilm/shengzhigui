@@ -8,7 +8,8 @@ let package = Package(
     targets: [
         .target(name: "AudioBridge", publicHeadersPath: "include"),
         .executableTarget(name: "SoundChannels", dependencies: ["AudioBridge"]),
-        .testTarget(name: "AudioBridgeTests", dependencies: ["AudioBridge"])
+        .testTarget(name: "AudioBridgeTests", dependencies: ["AudioBridge"]),
+        .testTarget(name: "AudioRouteTests", dependencies: ["SoundChannels", "AudioBridge"])
     ],
     swiftLanguageModes: [.v5]
 )

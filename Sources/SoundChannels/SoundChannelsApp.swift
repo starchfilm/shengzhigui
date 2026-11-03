@@ -3,7 +3,6 @@ import CoreAudio
 
 @main struct SoundChannelsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @StateObject private var model = AudioModel()
     init() {
         if CommandLine.arguments.contains("--diagnose") {
             let report: [String: Any] = [
@@ -17,17 +16,45 @@ import CoreAudio
     }
     var body: some Scene {
         MenuBarExtra("声之轨", systemImage: "speaker.wave.2.fill") {
-            MixerView(model: model)
+            MixerView(model: delegate.model)
         }.menuBarExtraStyle(.window)
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+    // Both entry points share one audio controller and the same settings.
+    lazy var model = AudioModel()
+    private var mixerWindow: NSWindow?
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        showMixerWindow()
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showMixerWindow()
+        return false
+    }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+    private func showMixerWindow() {
+        if mixerWindow == nil {
+            let hosting = NSHostingController(rootView: MixerView(model: model))
+            hosting.sizingOptions = [.preferredContentSize]
+            let window = NSWindow(contentViewController: hosting)
+            window.title = "声之轨"
+            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            mixerWindow = window
+        }
+        guard let window = mixerWindow else { return }
+        if window.isMiniaturized { window.deminiaturize(nil) }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -81,8 +108,6 @@ struct MixerView: View {
             if appsExpanded {
             Text("默认跟随上方系统输出；开启后可单独调整应用。")
                 .font(.caption).foregroundStyle(.secondary)
-            Label("通话音量保护随应用控制开启", systemImage: "phone.badge.waveform")
-                .font(.caption).foregroundStyle(.secondary)
             if model.applications.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "music.note").font(.title2)
@@ -92,7 +117,7 @@ struct MixerView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        ForEach(model.applications) { app in AppRow(app: app, model: model) }
+                        ForEach(model.applications) { app in AppRow(app: app, model: model).disabled(model.restoringAll) }
                     }
                 }.frame(height: min(430, CGFloat(model.applications.count) * 74 + CGFloat(model.enabled.count) * 64))
             }
@@ -109,7 +134,8 @@ struct MixerView: View {
             }
             Divider()
             HStack {
-                Button("恢复所有应用") { model.restoreAll() }.disabled(!model.canRestoreAll)
+                Button(model.restoringAll ? "正在恢复系统播放…" : "恢复所有应用") { model.restoreAll() }
+                    .disabled(model.restoringAll || !model.canRestoreAll)
                 Spacer()
                 Button("退出") { model.quit() }
             }.font(.caption)
@@ -134,7 +160,7 @@ struct AppRow: View {
                 }
                 Spacer(minLength: 0)
                 Toggle("控制\(app.name)", isOn: Binding(get: { isEnabled || model.starting.contains(app.id) }, set: { model.toggle(app, $0) }))
-                    .labelsHidden().toggleStyle(ClearSwitchStyle())
+                    .labelsHidden().toggleStyle(ClearSwitchStyle()).disabled(model.restoringAll)
             }
             if isEnabled {
                 HStack {

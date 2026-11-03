@@ -15,6 +15,7 @@ struct AppSetting: Codable {
     @Published var settings: [String: AppSetting] = [:]
     @Published var enabled: Set<String> = []
     @Published var starting: Set<String> = []
+    @Published var restoringAll = false
     @Published var error: String?
     @Published var masterVolume: Double = 1
     @Published var masterVolumeAvailable = false
@@ -89,6 +90,7 @@ struct AppSetting: Codable {
         }
     }
     private func reconcileRoutes() {
+        guard !restoringAll else { return }
         for id in Array(enabled) {
             guard let app = applications.first(where: { $0.id == id }) else {
                 disable(id); continue
@@ -145,7 +147,7 @@ struct AppSetting: Codable {
         if on { start(app) } else { disable(app.id) }
     }
     private func start(_ app: AudioApplication) {
-        guard !starting.contains(app.id) else { return }
+        guard !restoringAll, !starting.contains(app.id) else { return }
         guard let device = selectedDevice(app.id) else {
             enabled.remove(app.id); error = "没有找到可用的输出设备。"; return
         }
@@ -177,8 +179,17 @@ struct AppSetting: Codable {
         }
     }
     func disable(_ id: String) {
-        generations.removeValue(forKey: id); starting.remove(id)
-        controller.stop(id); routeStates.removeValue(forKey: id); enabled.remove(id)
+        guard !restoringAll, !starting.contains(id) else { return }
+        generations.removeValue(forKey: id)
+        starting.insert(id)
+        controller.stop(id) { [weak self] result in
+            guard let self else { return }
+            self.starting.remove(id)
+            switch result {
+            case .success: self.routeStates.removeValue(forKey: id); self.enabled.remove(id)
+            case .failure(let error): self.error = error.localizedDescription
+            }
+        }
     }
     var canRestoreAll: Bool {
         !enabled.isEmpty || !starting.isEmpty || settings.values.contains {
@@ -186,19 +197,36 @@ struct AppSetting: Codable {
         }
     }
     func restoreAll() {
-        settings.removeAll()
-        pendingSave?.cancel()
-        persistSettings()
-        stopAll()
-    }
-    private func stopAll() {
+        guard !restoringAll else { return }
+        restoringAll = true
         generations.removeAll(); starting.removeAll()
-        controller.stopAll()
-        routeStates.removeAll(); enabled.removeAll()
+        controller.stopAll { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                self.restoringAll = false
+                self.settings.removeAll()
+                self.pendingSave?.cancel()
+                self.persistSettings()
+                self.routeStates.removeAll(); self.enabled.removeAll()
+            case .failure(let error):
+                self.controller.sample { states in
+                    self.routeStates = states
+                    self.enabled = Set(states.keys)
+                    self.restoringAll = false
+                    self.error = "恢复系统播放未完成，请重试。\(error.localizedDescription)"
+                }
+            }
+        }
     }
     func quit() {
         pendingSave?.cancel(); persistSettings()
-        controller.stopAll { NSApp.terminate(nil) }
+        controller.stopAll { [weak self] result in
+            switch result {
+            case .success: NSApp.terminate(nil)
+            case .failure(let error): self?.error = error.localizedDescription
+            }
+        }
     }
     func openPrivacy() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") { NSWorkspace.shared.open(url) }

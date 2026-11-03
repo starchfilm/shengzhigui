@@ -1,11 +1,8 @@
 import AVFoundation
 import CoreAudio
 import AudioBridge
-import os
 
 final class AudioRoute {
-    private var tapDescription: CATapDescription?
-    private let logger = Logger(subsystem: "com.starchfilm.SoundChannels", category: "AudioRoute")
     private var tap: AudioObjectID = 0
     private var aggregate: AudioObjectID = 0
     private var ioProc: AudioDeviceIOProcID?
@@ -16,7 +13,6 @@ final class AudioRoute {
     private(set) var deviceUID: String
     private var deviceID: AudioObjectID
     var isRunning: Bool { engine?.isRunning == true }
-    var protectionDevices: Set<AudioObjectID> { [deviceID, aggregate] }
 
     var peak: Float { bridge.map(SCBridgePeak) ?? 0 }
     var received: UInt64 { bridge.map(SCBridgeReceived) ?? 0 }
@@ -29,7 +25,6 @@ final class AudioRoute {
             description.name = "声之轨 · \(app.name)"
             description.isPrivate = true
             description.muteBehavior = .mutedWhenTapped
-            tapDescription = description
             try check(AudioHardwareCreateProcessTap(description, &tap), "建立应用音频通道")
             let format = try Hardware.value(tap, kAudioTapPropertyFormat, initial: AudioStreamBasicDescription())
             guard format.mFormatID == kAudioFormatLinearPCM,
@@ -73,7 +68,7 @@ final class AudioRoute {
             }, UnsafeMutableRawPointer(bridge), &ioProc), "连接应用音频")
             try check(AudioDeviceStart(aggregate, ioProc), "启动应用音频")
         } catch {
-            stop()
+            try? stop()
             throw error
         }
     }
@@ -100,28 +95,24 @@ final class AudioRoute {
             throw error
         }
     }
-    func stop() {
-        // Restore native playback explicitly before dismantling the capture path.
-        // Stopping the relay alone must never leave the source process muted.
-        if tap != 0, let description = tapDescription {
-            description.muteBehavior = .unmuted
-            var value = Unmanaged.passUnretained(description).toOpaque()
-            var property = Hardware.address(kAudioTapPropertyDescription)
-            let status = AudioObjectSetPropertyData(tap, &property, 0, nil, UInt32(MemoryLayout.size(ofValue: value)), &value)
-            if status != noErr { logger.error("Restore native playback failed: \(status)") }
-        }
+    func stop() throws {
         if let ioProc {
-            AudioDeviceStop(aggregate, ioProc)
-            AudioDeviceDestroyIOProcID(aggregate, ioProc)
+            try check(AudioDeviceStop(aggregate, ioProc), "停止应用音频采集")
+            try check(AudioDeviceDestroyIOProcID(aggregate, ioProc), "释放应用音频回调")
             self.ioProc = nil
+        }
+        if aggregate != 0 {
+            try check(AudioHardwareDestroyAggregateDevice(aggregate), "释放应用音频设备")
+            aggregate = 0
+        }
+        if tap != 0 {
+            try check(AudioHardwareDestroyProcessTap(tap), "释放应用音频通道")
+            tap = 0
         }
         engine?.stop()
         if let source { engine?.detach(source) }
         source = nil; engine = nil
-        if aggregate != 0 { AudioHardwareDestroyAggregateDevice(aggregate); aggregate = 0 }
-        if tap != 0 { AudioHardwareDestroyProcessTap(tap); tap = 0 }
-        tapDescription = nil
         if let bridge { SCBridgeDestroy(bridge); self.bridge = nil }
     }
-    deinit { stop() }
+    deinit { try? stop() }
 }

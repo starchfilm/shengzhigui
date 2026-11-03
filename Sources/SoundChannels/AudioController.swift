@@ -16,36 +16,6 @@ final class AudioController {
     private var routes: [String: AudioRoute] = [:]
     private var generations: [String: UUID] = [:]
     private let logger = Logger(subsystem: "com.starchfilm.SoundChannels", category: "Audio")
-    private var protectionTimer: DispatchSourceTimer?
-    private var protectionStatuses: [AudioObjectID: OSStatus] = [:]
-
-    private func updateProtection() {
-        guard !routes.isEmpty else {
-            protectionTimer?.cancel(); protectionTimer = nil
-            protectionStatuses.removeAll()
-            return
-        }
-        applyProtection()
-        if protectionTimer == nil {
-            let timer = DispatchSource.makeTimerSource(queue: queue)
-            timer.schedule(deadline: .now() + 0.3, repeating: 0.3, leeway: .milliseconds(40))
-            timer.setEventHandler { [weak self] in self?.applyProtection() }
-            protectionTimer = timer
-            timer.resume()
-        }
-    }
-
-    private func applyProtection() {
-        let devices = routes.values.reduce(into: Set<AudioObjectID>()) { $0.formUnion($1.protectionDevices) }
-        for device in devices where device != kAudioObjectUnknown {
-            let status = DuckingProtection.restoreUnity(on: device)
-            if protectionStatuses[device] != status {
-                logger.notice("Call volume protection device \(device): status \(status)")
-                protectionStatuses[device] = status
-            }
-        }
-    }
-
     func configure(app: AudioApplication, device: OutputDevice, gain: Float, generation: UUID,
                    completion: @escaping (Result<RouteSnapshot, Error>) -> Void) {
         queue.async {
@@ -60,11 +30,11 @@ final class AudioController {
                     let milliseconds = Int((ProcessInfo.processInfo.systemUptime - began) * 1000)
                     self.logger.notice("Reused capture channel; output switch completed in \(milliseconds) ms")
                 } else {
-                    self.routes.removeValue(forKey: app.id)?.stop()
+                    try self.routes[app.id]?.stop()
+                    self.routes.removeValue(forKey: app.id)
                     route = try AudioRoute(app: app, device: device, gain: gain)
                     self.routes[app.id] = route
                 }
-                self.updateProtection()
                 return self.snapshot(route)
             }
             DispatchQueue.main.async { completion(result) }
@@ -73,20 +43,29 @@ final class AudioController {
     func setGain(_ id: String, _ gain: Float) {
         queue.async { self.routes[id]?.setGain(gain) }
     }
-    func stop(_ id: String, generation: UUID? = nil) {
+    func stop(_ id: String, generation: UUID? = nil, completion: ((Result<Void, Error>) -> Void)? = nil) {
         queue.async {
             if let generation, self.generations[id] != generation { return }
             self.generations.removeValue(forKey: id)
-            self.routes.removeValue(forKey: id)?.stop()
-            self.updateProtection()
+            let result = Result {
+                try self.routes[id]?.stop()
+                self.routes.removeValue(forKey: id)
+            }
+            if let completion { DispatchQueue.main.async { completion(result) } }
         }
     }
-    func stopAll(completion: (() -> Void)? = nil) {
+    func stopAll(completion: ((Result<Void, Error>) -> Void)? = nil) {
         queue.async {
-            for route in self.routes.values { route.stop() }
-            self.routes.removeAll(); self.generations.removeAll()
-            self.updateProtection()
-            if let completion { DispatchQueue.main.async { completion() } }
+            var failure: Error?
+            for id in Array(self.routes.keys) {
+                do {
+                    try self.routes[id]?.stop()
+                    self.routes.removeValue(forKey: id)
+                    self.generations.removeValue(forKey: id)
+                } catch { failure = error }
+            }
+            let result: Result<Void, Error> = failure.map { .failure($0) } ?? .success(())
+            if let completion { DispatchQueue.main.async { completion(result) } }
         }
     }
     func sample(completion: @escaping ([String: RouteSnapshot]) -> Void) {
